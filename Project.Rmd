@@ -1,6 +1,6 @@
 ---
 title: "Project"
-author: "Kachina Aschenberg Øwre"
+author: "Kachina Aschenberg Øwre & Charlene A Boyle"
 date: "2026-10-27"
 output: html_document
 ---
