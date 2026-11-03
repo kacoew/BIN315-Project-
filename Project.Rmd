@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 -------------------------------------------------------------------------
-
+bjabdxwio
 # CANVAS
 
 In this project you will analyse a data set of your choice using methods covered in this course. You will then write and hand in a research paper. 
