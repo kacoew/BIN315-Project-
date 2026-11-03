@@ -1,0 +1,98 @@
+---
+title: "Project"
+author: "Kachina Aschenberg Øwre"
+date: "2026-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+-------------------------------------------------------------------------
+
+# CANVAS
+
+In this project you will analyse a data set of your choice using methods covered in this course. You will then write and hand in a research paper. 
+
+Two typical analysis pipelines could look like this:
+
+Supervised learning: (a) PCA/hierarchal clustering/heatmap to get an initial overview of the data, (b) differential expression analysis to reduce the dimensionality, (c) machine learning to predict outcome, (d) extract some biological insight from the machine learning model.
+Unsupervised learning: (a) PCA/hierarchal clustering/heatmap to get an initial overview of the data, (b) network analysis and module detection, (c) GO enrichment analysis of modules, (d) pathway analysis of selected pathways.
+Work in groups of four.
+
+Some suggested data sets:
+
+Do you have a fitting data set as part of your Master or PhD work? This would be a great opportunity to start working on that data set!
+Revisit Assignment 5 (Week 5). The Cancer Genome Atlas (TCGA) Research Network has some amazing data sets for supervised learning. 
+My wood formation data set is a good starting point for applying various unsupervised methods such as clustering and network analysis.
+You can also take data from one of the other papers you have read during this course, or find a new paper.
+The ENCODE project has a whole host of relevant functional genomics data sets.
+Search for datasets in EBI's Expression Atlas.
+Some additional datasets that we have found:
+Myocardial Gene Expression Signatures in Human Heart Failure With Preserved Ejection Fraction is another good starting point for applying various methods such as clustering and network analysis. You can download the count data from https://zenodo.org/
+... more to come.
+EXAMINATION
+
+PROJECT PREPARATION  DEADLINE: Sign up to one of the groups here in Canvas (the Project group set) and submit a shell RMarkdown generated html report: It should contain the names of the group members, headers (Abstract, Introduction, Methods, Results, Discussion and References) and a short description of the data set you want to work on and the methods you plan to apply (write this text in the Methods-section).
+
+REPORT DEADLINE: Write a short research paper (approximately 1500 words) using RMarkdown: Abstract, Introduction, Methods, Results, Discussion and References.
+
+PRESENTATION: Hold a presentation (10 min) for the teachers highlighting your main findings. This will be organized during the Thursday and Friday scheduled hours the last week of the course.
+
+Help? There will be no lectures during the project period, but you can get help on Thursdays and Fridays.
+
+-------------------------------------------------------------------------
+
+cool and funny datasets!!!!!!!
+
+ha med metode del
+
+hva forventer de: data should be FAIR (ACRNYM)
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
