@@ -1,6 +1,6 @@
 ---
 title: "TODO: project title"
-author: "Kachina Aschenberg Øwre, TODO: partner name(s)"
+author: "Kachina Aschenberg Øwre, Charlene Alexandra Boyle"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -21,6 +21,15 @@ Only the Methods section needs text now. Replace each TODO with your own words, 
 # Introduction
 
 # Methods
+description of the data set:
+
+ methods we plan to apply:
+1. Filtering and normalization (VST), Lab 2
+2. Overview: PCA and hierarchical clustering / heatmap, Lab 4
+3. Co-expression network and module detection (WGCNA), Lab 6
+4. Module–trait association (diagnosis, Braak, age, sex), Lab 6
+5. GO enrichment of selected modules, Lab 3/7
+6. Pathway analysis of a selected pathway (pathview), Lab 7
 
 ## Data
 
