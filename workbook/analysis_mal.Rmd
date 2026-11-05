@@ -1,0 +1,296 @@
+---
+title: "Analysis template: GSE125583 (fill in the TODOs)"
+author: "Kachina Aschenberg Øwre, Charlene Alexandra Boyle"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    code_folding: hide
+---
+
+<!--
+HOW TO USE THIS TEMPLATE
+- Explanations for every step are in oppgavemal.md (same folder).
+- Chunks marked eval = FALSE are not run yet. Fill in the TODOs, then change to eval = TRUE.
+- Paths are relative to the PROSJEKT folder (see root.dir below), so code can be copied
+  straight into Project_outline.Rmd.
+- This is a working file, not the report. Rewrite the code in your own words for the report.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = "..")   # run everything from the PROSJEKT folder
+set.seed(315)
+```
+
+```{r packages}
+library(tidyverse)
+library(DESeq2)
+library(WGCNA)
+library(pheatmap)
+library(org.Hs.eg.db)
+library(pathview)
+options(stringsAsFactors = FALSE)
+```
+
+# Step 0 — Load data
+
+```{r load-data}
+counts <- as.matrix(read.delim("data/GSE125583_raw_counts.tsv.gz",
+                               row.names = 1, check.names = FALSE))
+traits <- read.csv("data/GSE125583_traits.csv")
+stopifnot(identical(colnames(counts), traits$sample))   # same sample order
+dim(counts)
+```
+
+```{r braak-numeric, eval=FALSE}
+# TODO 0.1: Turn Braak I–VI into numbers 1–6 (NA stays NA).
+#   Hint: factor(traits$braak, levels = c("I","II","III","IV","V","VI")), then as.numeric()
+traits$braak_num <- NULL
+
+# TODO 0.2: Make diagnosis numeric for correlation: control = 0, AD = 1.
+traits$ad <- NULL
+
+# TODO 0.3: Make sex numeric: F = 0, M = 1.
+traits$male <- NULL
+
+table(traits$braak, traits$braak_num, useNA = "ifany")   # check the recoding
+```
+
+# Step 1 — Filter + VST
+
+```{r filter-vst, eval=FALSE}
+# TODO 1.1: Keep genes with >= 10 counts in >= 20 % of the samples.
+#   Hint: rowSums(counts >= 10) >= 0.2 * ncol(counts)
+keep <- NULL
+counts_f <- counts[keep, ]
+
+# TODO 1.2: Build a DESeq2 object. design = ~ 1 because we do not test anything yet.
+#   Hint: DESeqDataSetFromMatrix(countData = ..., colData = traits, design = ~ 1)
+dds <- NULL
+
+# TODO 1.3: Variance stabilizing transformation, blind to the design.
+#   Hint: vst(dds, blind = TRUE), then assay() to get the matrix.
+vsd_mat <- NULL
+
+dim(vsd_mat)   # expect about 21 500 genes x 289 samples
+```
+
+# Step 2 — Overview: PCA and clustering
+
+```{r pca, eval=FALSE}
+# TODO 2.1: Pick the 2000 most variable genes.
+#   Hint: order(apply(vsd_mat, 1, var), decreasing = TRUE)[1:2000]
+top_genes <- NULL
+
+# TODO 2.2: PCA on samples (samples must be rows -> t()).
+pca <- NULL   # prcomp(t(vsd_mat[top_genes, ]))
+
+# TODO 2.3: Percent variance per PC: 100 * pca$sdev^2 / sum(pca$sdev^2)
+var_pct <- NULL
+
+# TODO 2.4: Plot PC1 vs PC2 coloured by Braak. Make the same plot for diagnosis and sex.
+pca_df <- cbind(traits, pca$x[, 1:5])
+ggplot(pca_df, aes(PC1, PC2, colour = braak)) +
+  geom_point(alpha = 0.7) +
+  scale_colour_viridis_d() +
+  labs(x = paste0("PC1 (", round(var_pct[1], 1), " %)"),
+       y = paste0("PC2 (", round(var_pct[2], 1), " %)"),
+       title = "TODO: write the message of the plot as the title") +
+  theme_bw()
+```
+
+```{r sample-tree, eval=FALSE}
+# TODO 2.5: Cluster the samples to look for outliers.
+#   Hint: hclust(dist(t(vsd_mat[top_genes, ])), method = "average"), then plot().
+#   An outlier is a sample that joins the tree alone, far above the others.
+sample_tree <- NULL
+plot(sample_tree, labels = FALSE, main = "Sample clustering (top 2000 genes)")
+```
+
+```{r heatmap, eval=FALSE}
+# TODO 2.6: Heatmap of the 50 most variable genes with trait annotation.
+#   Hint: pheatmap(vsd_mat[top_genes[1:50], ], scale = "row", show_colnames = FALSE,
+#                  annotation_col = traits_annotation)
+traits_annotation <- data.frame(braak = traits$braak, diagnosis = traits$diagnosis,
+                                row.names = traits$sample)
+```
+
+# Step 3 — WGCNA
+
+```{r wgcna-input, eval=FALSE}
+# TODO 3.1: Pick the 5000 most variable genes and transpose (samples = rows, genes = columns).
+datExpr <- NULL
+
+# TODO 3.2: Check for genes/samples with too many missing values or zero variance.
+#   Hint: gsg <- goodSamplesGenes(datExpr); gsg$allOK should be TRUE.
+```
+
+```{r soft-threshold, eval=FALSE}
+allowWGCNAThreads()
+powers <- c(1:10, seq(12, 20, 2))
+
+# TODO 3.3: Run pickSoftThreshold(). Decide signed or unsigned (see oppgavemal.md 2.8).
+#   Hint: pickSoftThreshold(datExpr, powerVector = powers, networkType = "signed")
+sft <- NULL
+
+# TODO 3.4: Plot scale-free fit (R²) against power and add a line at 0.8.
+#   R² = -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2]
+#   Choose the lowest power where R² >= 0.8 and write it here:
+chosen_power <- NULL
+```
+
+```{r modules, eval=FALSE}
+# TODO 3.5: Build the network and find modules.
+#   Hint: blockwiseModules(datExpr, power = chosen_power, networkType = "signed",
+#                          TOMType = "signed", minModuleSize = 30, mergeCutHeight = 0.15,
+#                          maxBlockSize = 6000, numericLabels = FALSE, verbose = 3)
+#   maxBlockSize must be larger than ncol(datExpr) so all genes are in one block.
+net <- NULL
+
+module_colors <- net$colors
+MEs <- net$MEs
+
+# TODO 3.6: Number of genes per module (table()) and a bar plot.
+
+# TODO 3.7: Dendrogram with module colours.
+#   Hint: plotDendroAndColors(net$dendrograms[[1]], module_colors[net$blockGenes[[1]]],
+#                             "Module", dendroLabels = FALSE)
+```
+
+# Step 4 — Module ↔ trait
+
+```{r module-trait, eval=FALSE}
+trait_mat <- traits[, c("braak_num", "ad", "age", "male")]
+
+# TODO 4.1: Correlate eigengenes with traits. Use Spearman (good for ordinal Braak).
+#   Hint: cor(MEs, trait_mat, use = "p", method = "spearman")
+module_trait_cor <- NULL
+
+# TODO 4.2: p-values, then FDR over ALL module x trait tests.
+#   Hint: corPvalueStudent(module_trait_cor, nrow(datExpr))
+#         matrix(p.adjust(p, "BH"), nrow = nrow(p), dimnames = dimnames(p))
+module_trait_p <- NULL
+module_trait_fdr <- NULL
+
+# TODO 4.3: Heatmap with correlation and FDR in each cell.
+#   Hint: labeledHeatmap(Matrix = module_trait_cor, xLabels = colnames(trait_mat),
+#                        yLabels = rownames(module_trait_cor), colors = blueWhiteRed(50),
+#                        textMatrix = text_matrix, zlim = c(-1, 1))
+text_matrix <- NULL   # paste0(signif(cor, 2), "\n(", signif(fdr, 1), ")")
+```
+
+```{r top-module, eval=FALSE}
+# TODO 4.4: Which module has the strongest Braak correlation? Write its name here.
+top_module <- NULL   # e.g. "MEturquoise"
+
+# TODO 4.5: Boxplot of the top module eigengene per Braak stage.
+
+# TODO 4.6: Does the module still follow Braak when age and sex are included?
+#   Hint: summary(lm(MEs[[top_module]] ~ braak_num + age + male, data = traits))
+```
+
+```{r gs-vs-kme, eval=FALSE}
+# TODO 4.7: Gene significance (GS) and module membership (kME).
+#   GS  = cor(datExpr, traits$braak_num, use = "p", method = "spearman")
+#   kME = cor(datExpr, MEs, use = "p")
+#   Plot GS against kME for the genes in the top module.
+#   Hint: verboseScatterplot(abs(kME[in_module, top_module]), abs(GS[in_module]), ...)
+```
+
+# Step 5 — Hub genes + GO
+
+```{r hub-genes, eval=FALSE}
+# TODO 5.1: Top 10 genes with the highest kME in the top module.
+#   Gene IDs are Entrez IDs (column names of datExpr). Convert to symbols:
+#   mapIds(org.Hs.eg.db, keys = ids, column = "SYMBOL", keytype = "ENTREZID")
+hub_ids <- NULL
+hub_symbols <- NULL
+```
+
+```{r gene-lists, eval=FALSE}
+# TODO 5.2: For each interesting module: genes with kME > 0.7 -> symbols -> text file.
+#   Hint: writeLines(na.omit(symbols), "results/turquoise_genes.txt")
+#   Then paste the list into https://maayanlab.cloud/Enrichr/
+#   Libraries: "GO Biological Process 2023" and "KEGG 2021 Human".
+dir.create("results", showWarnings = FALSE)
+```
+
+# Step 6 — Pathview
+
+```{r pathview, eval=FALSE}
+# TODO 6.1: Gene significance for Braak for ALL filtered genes (not only the 5000).
+#   Hint: cor(t(vsd_mat), traits$braak_num, use = "p", method = "spearman")[, 1]
+#   The names must be Entrez IDs (they already are: rownames(vsd_mat)).
+gs_all <- NULL
+
+# TODO 6.2: Choose a pathway from your GO/KEGG result (see oppgavemal.md 2.11).
+#   Hint: pathview(gene.data = gs_all, pathway.id = "04721", species = "hsa",
+#                  out.suffix = "braak", limit = list(gene = 0.5))
+```
+
+# Step 7 — Extra analyses
+
+```{r extra-A-braak-vs-diagnosis, eval=FALSE}
+# TODO A: One dot per module: x = cor with Braak, y = cor with diagnosis (from module_trait_cor).
+#   Add geom_abline(): modules far from the diagonal follow one trait more than the other.
+```
+
+```{r extra-B-cell-types, eval=FALSE}
+markers <- list(
+  neuron          = c("SNAP25", "SYT1", "RBFOX3", "GAD1", "SLC17A7"),
+  astrocyte       = c("GFAP", "AQP4", "ALDH1L1", "SLC1A2"),
+  microglia       = c("CX3CR1", "P2RY12", "CSF1R", "AIF1"),
+  oligodendrocyte = c("MBP", "PLP1", "MOG", "MOBP"),
+  endothelial     = c("CLDN5", "FLT1", "VWF")
+)
+# TODO B.1: Convert marker symbols to Entrez IDs.
+#   Hint: mapIds(org.Hs.eg.db, keys = ..., column = "ENTREZID", keytype = "SYMBOL")
+# TODO B.2: Which module is each marker in? (module_colors[marker_ids])
+# TODO B.3: Cell-type score per sample = mean VST of its markers (colMeans()).
+#   Correlate the scores with PC1, PC2 and the module eigengenes.
+#   Does one cell type explain PC2?
+```
+
+```{r extra-C-resilience, eval=FALSE}
+# TODO C: Only Braak IV samples. For each module: t.test(ME ~ diagnosis).
+#   Collect the p-values, adjust with p.adjust(..., "BH"), and show a table.
+braak4 <- traits$braak == "IV" & !is.na(traits$braak)
+```
+
+```{r extra-D-literature, eval=FALSE}
+lit_hubs <- c("FNDC3A", "MED23", "NRIP1", "PKN2")   # Ribeiro-dos-Santos et al. 2023
+# TODO D: Convert to Entrez, then look up module_colors[...] for each gene.
+#   Genes not in datExpr were filtered out or not among the 5000 most variable.
+```
+
+# Solved example — XIST and sex
+
+Same pattern as module ↔ trait, but on one gene with a known answer.
+
+```{r solved-example}
+# 1. One value per sample: XIST (Entrez 7503) as log2 counts-per-million.
+lib_size <- colSums(counts)
+xist_log_cpm <- log2(counts["7503", ] / lib_size * 1e6 + 1)
+
+# 2. Compare with the trait (drop the sample with missing sex).
+xist_df <- data.frame(xist = xist_log_cpm, sex = traits$sex) |> filter(!is.na(sex))
+t.test(xist ~ sex, data = xist_df)
+
+# 3. Plot.
+ggplot(xist_df, aes(sex, xist, fill = sex)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(width = 0.15, alpha = 0.4, size = 1) +
+  scale_fill_manual(values = c(F = "#E69F00", M = "#56B4E9")) +
+  labs(x = "Sex", y = "XIST, log2(CPM + 1)",
+       title = "XIST is expressed in females only: sex labels match the data") +
+  theme_bw() + theme(legend.position = "none")
+
+# 4. Conclusion in one sentence: XIST is far higher in females, so the sex labels are correct.
+```
+
+# Session info
+
+```{r session-info}
+sessionInfo()
+```

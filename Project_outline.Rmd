@@ -1,0 +1,182 @@
+---
+title: "TODO: project title"
+author: "Kachina Aschenberg Øwre, TODO: partner name(s)"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+<!--
+OUTLINE ONLY. Every "TODO" is for the group to write in your own words.
+Word budget (~1500 total): Abstract ~150 · Introduction ~300 · Methods ~300 · Results ~400 · Discussion ~350
+Delete these comments before you hand in.
+-->
+
+# Abstract
+
+<!-- TODO (write last): question → data → methods → main finding → what it means. ~5 sentences. -->
+
+# Introduction
+
+<!-- TODO:
+- Alzheimer's disease: what it is, why it matters
+- The fusiform gyrus: what it does, when it is affected in AD
+- Braak stage: what it measures
+- Your research question (one sentence)
+-->
+
+# Methods
+
+## Data
+
+<!-- TODO: describe the dataset in your own words (see "Data notes" at the bottom). -->
+
+```{r load-data}
+counts <- read.delim("data/GSE125583_raw_counts.tsv.gz", row.names = 1, check.names = FALSE)
+traits <- read.csv("data/GSE125583_traits.csv")
+stopifnot(identical(colnames(counts), traits$sample))
+dim(counts)
+```
+
+## Planned analysis
+
+<!-- TODO: one or two sentences per step: what you do and why. -->
+
+1. Filtering and normalization (VST), Lab 2
+2. Overview: PCA and hierarchical clustering / heatmap, Lab 4
+3. Co-expression network and module detection (WGCNA), Lab 6
+4. Module–trait association (diagnosis, Braak, age, sex), Lab 6
+5. GO enrichment of selected modules, Lab 3/7
+6. Pathway analysis of a selected pathway (pathview), Lab 7
+
+# Results
+
+## Normalization and overview
+
+```{r normalization}
+# TODO
+```
+
+```{r pca}
+# TODO
+```
+
+## Co-expression modules
+
+```{r wgcna}
+# TODO
+```
+
+## Module–trait relationships
+
+```{r module-trait}
+# TODO
+```
+
+## Functional enrichment
+
+```{r go}
+# TODO
+```
+
+## Pathway analysis
+
+```{r pathway}
+# TODO
+```
+
+# Discussion
+
+<!-- TODO:
+- What do the modules mean biologically?
+- Compare with earlier studies on this dataset
+- Limitations, e.g. cell-type composition, PC2 not explained by traits, controls with Braak IV
+-->
+
+# References
+
+<!-- TODO: the dataset (GEO GSE125583 + PMID 32610143), papers you cite, R packages. -->
+
+---
+
+# Data notes (working notes, remove before hand-in)
+
+How the data in `data/` was collected, step by step.
+
+**Source:** GEO (Gene Expression Omnibus, NCBI), dataset **GSE125583**.
+
+- Title: *"RNA Expression in fusiform gyrus of AD and Control subjects"*
+- Submitted by Genentech (Huntley, Foreman, Friedman, Etxeberria)
+- Linked paper: PubMed ID 32610143
+- Page: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE125583>
+
+**Step 1: Read the GEO record.** 289 samples, post-mortem fusiform gyrus, bulk RNA-seq (Illumina, platform GPL16791). 89 of the subjects were also in an older dataset (GSE95587), with RNA from different tissue blocks.
+
+**Step 2: Checked which files exist.**
+
+| File | From | What |
+|---|---|---|
+| `GSE125583_RAW.tar` (87 MB) | authors | one file per sample (counts + RPKM) |
+| `GSE125583_raw_counts_GRCh38.p13_NCBI.tsv.gz` (12 MB) | NCBI | one table with all samples |
+| `GSE125583_series_matrix.txt.gz` | GEO | sample information (traits) |
+
+The NCBI raw counts were chosen because they are one table of integer counts that can go straight into DESeq2.
+
+**Step 3: What "NCBI raw counts" means.** NCBI mapped the submitted raw reads to the human genome GRCh38.p13 and counted reads per gene. Rows are genes (Entrez IDs), columns are samples (GSM IDs). These are produced by NCBI's pipeline, not the authors' own numbers. The pipeline is described on GEO's "Download RNA-seq counts" page (check and cite it there).
+
+**Step 4: Read the traits from the series matrix.** For each sample: diagnosis, age, sex, Braak stage, case ID.
+
+**Step 5: Quick data check (PCA, done outside this project).** No outliers. PC1 (36 % of variance) was associated with Braak stage, PC3 with sex.
+
+**Step 6: Downloaded into `data/`.** Raw counts and series matrix. The NCBI gene-annotation file could not be downloaded automatically, so gene IDs are still Entrez IDs (convert later with `org.Hs.eg.db`).
+
+**Step 7: Made `GSE125583_traits.csv`** with the chunk below. It:
+
+1. pulls the `!Sample_…` lines out of the series matrix,
+2. drops `tissue` (the same for all samples),
+3. renames the columns to `sample, case_id, diagnosis, age, sex, braak`,
+4. recodes "Alzheimer's disease" to `AD`,
+5. makes `age` numeric and turns the text "NA" into real missing values.
+
+Nothing was filtered, normalized or removed: the counts are exactly as NCBI provides them.
+
+**What the data includes**
+
+| | |
+|---|---|
+| Genes | 39,376 (Entrez IDs) |
+| Samples | 289: 219 AD, 70 control |
+| Age | 60–103 years (1 missing) |
+| Sex | 158 M, 130 F, 1 missing |
+| Braak stage | I: 4, II: 15, III: 44, IV: 99, V: 65, VI: 60, missing: 2 |
+| Reads per sample | 8–94 million (median 28) |
+
+**Code to re-download the data and rebuild the traits table** (not run when knitting):
+
+```{bash download, eval=FALSE}
+mkdir -p data
+curl -L -o data/GSE125583_raw_counts.tsv.gz "https://www.ncbi.nlm.nih.gov/geo/download/?type=rnaseq_counts&acc=GSE125583&format=file&file=GSE125583_raw_counts_GRCh38.p13_NCBI.tsv.gz"
+curl -L -o data/GSE125583_series_matrix.txt.gz "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE125nnn/GSE125583/matrix/GSE125583_series_matrix.txt.gz"
+```
+
+```{r make-traits, eval=FALSE}
+sm <- readLines(gzfile("data/GSE125583_series_matrix.txt.gz"))
+field <- function(l) gsub('"', "", strsplit(l, "\t")[[1]][-1])
+traits <- data.frame(sample = field(grep("^!Sample_geo_accession", sm, value = TRUE)))
+for (l in grep("^!Sample_characteristics_ch1", sm, value = TRUE)) {
+  v <- field(l); traits[[sub(":.*", "", v[1])]] <- sub("^[^:]*: ", "", v)
+}
+traits$tissue <- NULL
+names(traits) <- c("sample", "case_id", "diagnosis", "age", "sex", "braak")
+traits$diagnosis <- ifelse(traits$diagnosis == "control", "control", "AD")
+traits$age <- suppressWarnings(as.numeric(traits$age))
+traits$sex[traits$sex == "NA"] <- NA
+traits$braak[traits$braak == "NA"] <- NA
+write.csv(traits, "data/GSE125583_traits.csv", row.names = FALSE)
+```
