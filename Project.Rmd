@@ -53,19 +53,448 @@ ha med metode del
 hva forventer de: data should be FAIR (ACRNYM)
 
 
-```{r}
+```{r, innlesing}
+# Gentellinger: gener i rader og prøver i kolonner
+counts <- read.delim(
+  "data/GSE125583_raw_counts.tsv.gz",
+  row.names = 1,
+  check.names = FALSE
+)
+
+# Informasjon om hver prøve
+traits <- read.csv(
+  "data/GSE125583_traits.csv",
+  stringsAsFactors = FALSE
+)
+
+# kontroll av innlesningene
+dim(counts)
+dim(traits)
+
+counts[1:4, 1:4]
+head(traits)
+```
+
+```{r, filtrere data}
+# Minste antall prøver: 20 % av alle prøvene, rundet opp
+min.samples <- ceiling(0.20 * ncol(counts))
+
+# Behold gener med minst 10 tellinger i minst dette antallet prøver
+keep <- rowSums(counts >= 10) >= min.samples
+counts.filtered <- counts[keep, , drop = FALSE]
+
+# Kontroller antall prøver som kreves og antall gener som beholdes
+min.samples
+nrow(counts.filtered)
+```
+
+```{r, normalisering}
+library(DESeq2)
+
+# Bruk prøve-ID-ene som radnavn i prøveinformasjonen
+rownames(traits) <- traits$sample
+
+# Samle gentellinger og prøveinformasjon i et DESeq2-objekt
+dds <- DESeqDataSetFromMatrix(
+  countData = as.matrix(counts.filtered),
+  colData = traits,
+  design = ~ 1
+)
+
+# Beregn normaliseringsfaktorer for prøvene
+dds <- estimateSizeFactors(dds)
+
+# VST-transformer og hent ut uttrykksmatrisen
+vst <- varianceStabilizingTransformation(dds, blind = TRUE)
+expr <- assay(vst)
+
+dim(expr)
+```
+
+```{r, PCA, alzheimer og kontrollgruppe}
+library(ggplot2)
+
+# PCA trenger prøver i rader og gener i kolonner
+pca <- prcomp(t(expr), center = TRUE, scale. = FALSE)
+
+# Prosent av variasjonen forklart av hver hovedkomponent
+variance <- 100 * pca$sdev^2 / sum(pca$sdev^2)
+
+# Samle koordinater og diagnose
+pca.data <- data.frame(
+  PC1 = pca$x[, 1],
+  PC2 = pca$x[, 2],
+  diagnosis = traits$diagnosis
+)
+
+# Tegn PCA-plottet
+ggplot(pca.data, aes(x = PC1, y = PC2, color = diagnosis)) +
+  geom_point(alpha = 0.7) +
+  labs(
+    x = paste0("PC1 (", round(variance[1], 1), "%)"),
+    y = paste0("PC2 (", round(variance[2], 1), "%)"),
+    color = "Diagnosis"
+  ) +
+  theme_bw()
+```
+
+```{r, PCA Braak stadium}
+# Legg til Braak-stadium i riktig rekkefølge
+pca.data$braak <- factor(
+  traits$braak,
+  levels = c("I", "II", "III", "IV", "V", "VI")
+)
+
+# Samme PCA, farget etter Braak-stadium
+ggplot(pca.data, aes(x = PC1, y = PC2, color = braak)) +
+  geom_point(alpha = 0.7) +
+  scale_color_viridis_d(na.value = "grey") +
+  labs(
+    x = paste0("PC1 (", round(variance[1], 1), "%)"),
+    y = paste0("PC2 (", round(variance[2], 1), "%)"),
+    color = "Braak stage"
+  ) +
+  theme_bw()
 
 ```
 
-```{r}
+```{r, clustering}
+library(WGCNA)
+
+# Beregn avstand mellom prøvene og lag treet
+sample.dist <- dist(t(expr), method = "euclidean")
+sample.tree <- hclust(sample.dist, method = "complete")
+
+# Farger for diagnose: AD = laksefarget, kontroll = turkis
+diagnosis.colors <- ifelse(
+  traits$diagnosis == "AD",
+  "salmon",
+  "turquoise"
+)
+diagnosis.colors[is.na(traits$diagnosis)] <- "grey"
+
+# Farger for Braak-stadium I–VI
+braak.palette <- c(
+  I = "#440154",
+  II = "#414487",
+  III = "#2A788E",
+  IV = "#22A884",
+  V = "#7AD151",
+  VI = "#FDE725"
+)
+
+braak.colors <- unname(
+  braak.palette[as.character(traits$braak)]
+)
+braak.colors[is.na(braak.colors)] <- "grey"
+
+# Samle fargestripene
+trait.colors <- cbind(
+  Diagnosis = diagnosis.colors,
+  Braak = braak.colors
+)
+
+# Tegn treet med fargestriper
+plotDendroAndColors(
+  sample.tree,
+  colors = trait.colors,
+  groupLabels = c("Diagnosis", "Braak"),
+  dendroLabels = FALSE,
+  main = "Sample clustering with diagnosis and Braak stage"
+)
 
 ```
 
-```{r}
+```{r, WGCNA prep}
+# Snu matrisen: prøver i rader, gener i kolonner
+datExpr <- t(expr)
+
+# Kontroller manglende verdier og gener uten variasjon
+gsg <- WGCNA::goodSamplesGenes(datExpr, verbose = 3)
+
+# Vis om alle prøver og gener bestod kontrollen
+gsg$allOK
+
+# Vis antall prøver og gener
+dim(datExpr)
 
 ```
 
-```{r}
+```{r, velge en power verdi}
+
+# Test flere power-verdier
+powers <- c(1:10, seq(12, 30, by = 2))
+
+sft <- WGCNA::pickSoftThreshold(
+  datExpr,
+  powerVector = powers,
+  networkType = "signed",
+  RsquaredCut = 0.80,
+  blockSize = 1000,
+  verbose = 5
+)
+
+# Vis foreslått power og resultatene
+sft$powerEstimate
+sft$fitIndices
+softPower <- 20
+
+```
+
+```{r, WGCNA results='hide', message=FALSE}
+
+# Gjør analysen mer reproduserbar
+set.seed(3)
+
+# Finn genmoduler
+modules <- WGCNA::blockwiseModules(
+  datExpr,
+  power = softPower,
+  networkType = "signed",
+  TOMType = "signed",
+  minModuleSize = 40,
+  mergeCutHeight = 0.25,
+  maxBlockSize = 5000,
+  numericLabels = FALSE,
+  randomSeed = 3,
+  verbose = 3
+)
+
+# Antall gener i hver modul
+table(modules$colors)
+
+# Hent modulenes oppsummerte uttrykksprofiler
+MEs <- modules$MEs
+```
+
+```{r, module size}
+
+table(modules$colors)
+```
+
+```
+
+```{r, klargjor traits}
+# Diagnose: kontroll = 0, AD = 1
+traits$AD <- ifelse(traits$diagnosis == "AD", 1, 0)
+
+# Gjør Braak I–VI om til tallene 1–6
+traits$braak.numeric <- match(
+  traits$braak,
+  c("I", "II", "III", "IV", "V", "VI")
+)
+
+# Kontroller omkodingen
+table(traits$diagnosis, traits$AD, useNA = "ifany")
+table(traits$braak, traits$braak.numeric, useNA = "ifany")
+```
+```{r, sammenhenger}
+# Utelat grey, som inneholder gener uten modultilhørighet
+MEs <- modules$MEs
+MEs <- MEs[, colnames(MEs) != "MEgrey", drop = FALSE]
+
+# Sett prøveinformasjonen i samme rekkefølge som eigengenene
+trait.data <- traits[
+  match(rownames(MEs), traits$sample),
+]
+
+stopifnot(identical(rownames(MEs), trait.data$sample))
+
+# Test sammenheng med diagnose og Braak for hver modul
+module.results <- do.call(
+  rbind,
+  lapply(colnames(MEs), function(module) {
+
+    diagnosis.test <- cor.test(
+      MEs[[module]], trait.data$AD,
+      method = "pearson"
+    )
+
+    braak.test <- cor.test(
+      MEs[[module]], trait.data$braak.numeric,
+      method = "spearman",
+      exact = FALSE
+    )
+
+    data.frame(
+      Module = sub("^ME", "", module),
+      Diagnosis_r = unname(diagnosis.test$estimate),
+      Diagnosis_p = diagnosis.test$p.value,
+      Braak_rho = unname(braak.test$estimate),
+      Braak_p = braak.test$p.value
+    )
+  })
+)
+
+# Korriger for at vi tester mange moduler
+module.results$Diagnosis_FDR <- p.adjust(
+  module.results$Diagnosis_p, method = "BH"
+)
+
+module.results$Braak_FDR <- p.adjust(
+  module.results$Braak_p, method = "BH"
+)
+
+# Vis resultatene
+module.results
+
+```
+
+```{r, heatmap}
+# Samle korrelasjonene i en matrise
+cor.matrix <- as.matrix(
+  module.results[, c("Diagnosis_r", "Braak_rho")]
+)
+
+rownames(cor.matrix) <- module.results$Module
+colnames(cor.matrix) <- c("AD diagnosis", "Braak stage")
+
+# Samle korrigerte p-verdier
+fdr.matrix <- as.matrix(
+  module.results[, c("Diagnosis_FDR", "Braak_FDR")]
+)
+
+# Vis korrelasjon og marker FDR < 0.05 med stjerne
+plot.labels <- matrix(
+  paste0(
+    sprintf("%.2f", cor.matrix),
+    ifelse(fdr.matrix < 0.05, "*", "")
+  ),
+  nrow = nrow(cor.matrix),
+  ncol = ncol(cor.matrix)
+)
+
+# Tegn heatmap
+WGCNA::labeledHeatmap(
+  Matrix = cor.matrix,
+  xLabels = colnames(cor.matrix),
+  yLabels = rownames(cor.matrix),
+  ySymbols = rownames(cor.matrix),
+  colorLabels = FALSE,
+  colors = WGCNA::blueWhiteRed(50),
+  textMatrix = plot.labels,
+  setStdMargins = FALSE,
+  plotLegend = TRUE,
+  zlim = c(-1, 1),
+  cex.text = 0.7,
+  main = "Module associations (* FDR < 0.05)",
+  cex.lab.y = 0.7,
+  margins = c(7, 10)
+)
+
+```
+
+```{r, sammenheng med diagnose når kjønn og alder tas med}
+# Klargjør alder og kjønn
+trait.data$age <- as.numeric(trait.data$age)
+trait.data$sex <- factor(trait.data$sex)
+
+# Undersøk hver modul, justert for alder og kjønn
+adjusted.results <- do.call(
+  rbind,
+  lapply(colnames(MEs), function(module) {
+
+    model.data <- data.frame(
+      ME = MEs[[module]],
+      AD = trait.data$AD,
+      age = trait.data$age,
+      sex = trait.data$sex
+    )
+
+    model <- lm(ME ~ AD + age + sex, data = model.data)
+    result <- coef(summary(model))
+
+    data.frame(
+      Module = sub("^ME", "", module),
+      AD_difference = result["AD", "Estimate"],
+      AD_p = result["AD", "Pr(>|t|)"],
+      Samples = nobs(model)
+    )
+  })
+)
+
+# Korriger for testing av mange moduler
+adjusted.results$AD_FDR <- p.adjust(
+  adjusted.results$AD_p,
+  method = "BH"
+)
+
+# Vis de minste korrigerte p-verdiene først
+adjusted.results <- adjusted.results[
+  order(adjusted.results$AD_FDR),
+]
+
+adjusted.results
+```
+
+```{r, diagnose og braak}
+# Sett Braak-stadiene i riktig rekkefølge
+braak.stage <- factor(
+  traits$braak,
+  levels = c("I", "II", "III", "IV", "V", "VI")
+)
+
+# Tell prøver per diagnose og Braak-stadium
+table(
+  Diagnosis = traits$diagnosis,
+  Braak = braak.stage,
+  useNA = "ifany"
+)
+```
+
+```{r, moduler- diagnos og braak}
+
+# Braak behandles som seks kategorier
+trait.data$braak.factor <- factor(
+  trait.data$braak,
+  levels = c("I", "II", "III", "IV", "V", "VI")
+)
+
+joint.results <- do.call(
+  rbind,
+  lapply(colnames(MEs), function(module) {
+
+    model.data <- data.frame(
+      ME = MEs[[module]],
+      AD = trait.data$AD,
+      braak = trait.data$braak.factor,
+      age = trait.data$age,
+      sex = trait.data$sex
+    )
+
+    # Bruk de samme prøvene i alle modellene
+    model.data <- model.data[complete.cases(model.data), ]
+
+    full.model <- lm(
+      ME ~ AD + braak + age + sex,
+      data = model.data
+    )
+
+    # Test diagnose utover Braak, alder og kjønn
+    without.AD <- update(full.model, . ~ . - AD)
+
+    # Test Braak samlet utover diagnose, alder og kjønn
+    without.braak <- update(full.model, . ~ . - braak)
+
+    data.frame(
+      Module = sub("^ME", "", module),
+      Diagnosis_p = anova(without.AD, full.model)[2, "Pr(>F)"],
+      Braak_p = anova(without.braak, full.model)[2, "Pr(>F)"],
+      Samples = nobs(full.model)
+    )
+  })
+)
+
+# Korriger for testing av mange moduler
+joint.results$Diagnosis_FDR <- p.adjust(
+  joint.results$Diagnosis_p, method = "BH"
+)
+
+joint.results$Braak_FDR <- p.adjust(
+  joint.results$Braak_p, method = "BH"
+)
+
+joint.results
 
 ```
 
