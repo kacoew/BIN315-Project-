@@ -241,7 +241,7 @@ softPower <- 20
 
 ```
 
-```{r, WGCNA results='hide', message=FALSE}
+```{r, WGCNA, results='hide', message=FALSE}
 
 # Gjør analysen mer reproduserbar
 set.seed(3)
@@ -498,6 +498,451 @@ joint.results
 
 ```
 
+```{r, genlister moduler}
+# Kontroller at hvert gen har en modulmerking
+stopifnot(length(modules$colors) == ncol(datExpr))
+
+# Modulene vi vil undersøke videre
+selected.modules <- c("pink", "brown", "magenta", "green")
+
+# Hent gen-ID-ene fra hver modul
+module.genes <- setNames(
+  lapply(selected.modules, function(module) {
+    colnames(datExpr)[modules$colors == module]
+  }),
+  selected.modules
+)
+
+# Antall gener i hver liste
+lengths(module.genes)
+
+# Alle gener som inngikk i WGCNA, til bakgrunn for GO-analysen
+background.genes <- colnames(datExpr)
+
+```
+
+```{r, GO }
+library(clusterProfiler)
+library(org.Hs.eg.db)
+
+# GO-analyse av biologiske prosesser i pink-modulen
+go.pink <- enrichGO(
+  gene = module.genes$pink,
+  universe = background.genes,
+  OrgDb = org.Hs.eg.db,
+  keyType = "ENTREZID",
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
+
+# Vis de første resultatene
+head(as.data.frame(go.pink)[, c(
+  "Description", "GeneRatio", "p.adjust", "Count"
+)])
+
+# Samme analyse for de tre neste modulene
+other.modules <- c("brown", "magenta", "green")
+
+go.other <- setNames(
+  lapply(other.modules, function(module) {
+    enrichGO(
+      gene = module.genes[[module]],
+      universe = background.genes,
+      OrgDb = org.Hs.eg.db,
+      keyType = "ENTREZID",
+      ont = "BP",
+      pAdjustMethod = "BH",
+      pvalueCutoff = 0.05,
+      qvalueCutoff = 0.05,
+      readable = TRUE
+    )
+  }),
+  other.modules
+)
+
+# Vis de seks første resultatene for hver modul
+for (module in other.modules) {
+  cat("\nModul:", module, "\n")
+
+  results <- as.data.frame(go.other[[module]])
+
+  print(head(results[, c(
+    "Description", "GeneRatio", "p.adjust", "Count"
+  )]))
+}
+
+```
+
+```{r, GO figur}
+# Samle resultatene fra alle fire modulene
+go.all <- c(list(pink = go.pink), go.other)
+
+# Lag én figur per modul
+for (module in names(go.all)) {
+  if (nrow(as.data.frame(go.all[[module]])) > 0) {
+    print(
+      enrichplot::dotplot(
+        go.all[[module]],
+        showCategory = 10
+      ) +
+        ggplot2::ggtitle(paste("GO biological processes:", module))
+    )
+  }
+}
+
+
+```
+
+```{r, KEGG}
+# KEGG-analyse for hver av de fire modulene
+kegg.results <- setNames(
+  lapply(names(module.genes), function(module) {
+    clusterProfiler::enrichKEGG(
+      gene = module.genes[[module]],
+      universe = background.genes,
+      organism = "hsa",
+      keyType = "ncbi-geneid",
+      pAdjustMethod = "BH",
+      pvalueCutoff = 0.05,
+      qvalueCutoff = 0.05
+    )
+  }),
+  names(module.genes)
+)
+
+# Vis de første resultatene for hver modul
+for (module in names(kegg.results)) {
+  cat("\nModul:", module, "\n")
+
+  results <- as.data.frame(kegg.results[[module]])
+
+  print(head(results[, c(
+    "ID", "Description", "GeneRatio", "p.adjust", "Count"
+  )]))
+}
+
+```
+
+```{r, DESeq2-klargjoring}
+# Lag en egen kopi av prøveinformasjonen
+de.traits <- traits
+
+# Klargjør variablene
+de.traits$diagnosis <- factor(
+  de.traits$diagnosis,
+  levels = c("control", "AD")
+)
+
+de.traits$braak <- factor(
+  de.traits$braak,
+  levels = c("I", "II", "III", "IV", "V", "VI")
+)
+
+de.traits$age <- as.numeric(de.traits$age)
+de.traits$sex <- factor(de.traits$sex)
+
+# Behold prøver med informasjon om alle fire variablene
+keep.samples <- complete.cases(
+  de.traits[, c("diagnosis", "braak", "age", "sex")]
+)
+
+de.traits <- de.traits[keep.samples, ]
+rownames(de.traits) <- de.traits$sample
+
+# Hent råtellingene i samme rekkefølge som prøveinformasjonen
+de.counts <- as.matrix(
+  counts.filtered[, de.traits$sample, drop = FALSE]
+)
+
+# Kontroller at rekkefølgen matcher
+stopifnot(
+  identical(colnames(de.counts), rownames(de.traits))
+)
+
+# Samle dataene i et nytt DESeq2-objekt
+dds.de <- DESeq2::DESeqDataSetFromMatrix(
+  countData = de.counts,
+  colData = de.traits,
+  design = ~ age + sex + braak + diagnosis
+)
+
+# Kontroller antall gener og prøver
+dim(dds.de)
+
+```
+
+```{r, DESeq2-diagnose:}
+# Kjør analysen
+dds.de <- DESeq2::DESeq(dds.de)
+
+# AD sammenlignet med kontroll
+res.AD <- DESeq2::results(
+  dds.de,
+  contrast = c("diagnosis", "AD", "control"),
+  alpha = 0.05
+)
+
+# Antall signifikante gener etter korreksjon for mange tester
+sum(res.AD$padj < 0.05, na.rm = TRUE)
+
+# Vis de seks genene med lavest korrigert p-verdi
+res.AD.sorted <- res.AD[order(res.AD$padj), ]
+
+head(as.data.frame(res.AD.sorted)[, c(
+  "baseMean", "log2FoldChange", "pvalue", "padj"
+)])
+
+```
+
+```{r, DESeq2-braak}
+
+# Test hva Braak tilfører utover alder, kjønn og diagnose
+dds.braak <- DESeq2::nbinomLRT(
+  dds.de,
+  reduced = ~ age + sex + diagnosis
+)
+
+res.braak <- DESeq2::results(
+  dds.braak,
+  alpha = 0.05
+)
+
+# Antall signifikante gener for hver analyse
+c(
+  AD = sum(res.AD$padj < 0.05, na.rm = TRUE),
+  Braak = sum(res.braak$padj < 0.05, na.rm = TRUE)
+)
+
+# Vis de seks sterkeste Braak-resultatene
+res.braak.sorted <- res.braak[order(res.braak$padj), ]
+
+head(as.data.frame(res.braak.sorted)[, c(
+  "baseMean", "stat", "pvalue", "padj"
+)])
+
+c(
+  AD = sum(res.AD$padj < 0.05, na.rm = TRUE),
+  Braak = sum(res.braak$padj < 0.05, na.rm = TRUE)
+)
+```
+```{r, pathway synapse}
+
+library(pathview)
+data("bods", package = "pathview")
+data("korg", package = "pathview")
+
+# Hent log2-fold change og bruk Entrez-ID som navn
+gene.effects <- res.AD$log2FoldChange
+names(gene.effects) <- rownames(res.AD)
+
+# Fjern verdier som mangler eller ikke er endelige
+gene.effects <- gene.effects[is.finite(gene.effects)]
+
+# Lag en mappe til figuren
+dir.create("figures", showWarnings = FALSE)
+
+# Tegn pathway-kartet
+pv.synapse <- pathview::pathview(
+  gene.data = gene.effects,
+  gene.idtype = "entrez",
+  pathway.id = "04724",
+  species = "hsa",
+  node.sum = "mean",
+  limit = list(gene = 2),
+  out.suffix = "AD_vs_control",
+  kegg.dir = "figures"
+)
+
+# Vis figuren i R Markdown
+knitr::include_graphics("hsa04724.AD_vs_control.png")
+
+```
+
+```{r, hub gener}
+# Finn de ti genene som følger hver modul tettest
+hub.genes <- do.call(
+  rbind,
+  lapply(names(module.genes), function(module) {
+
+    genes <- module.genes[[module]]
+
+    # Korrelasjon mellom hvert gen og modulens eigengene
+    kME <- as.numeric(cor(
+      datExpr[, genes, drop = FALSE],
+      MEs[[paste0("ME", module)]],
+      use = "pairwise.complete.obs"
+    ))
+
+    result <- data.frame(
+      Module = module,
+      EntrezID = genes,
+      kME = kME
+    )
+
+    result <- result[order(result$kME, decreasing = TRUE), ]
+    head(result, 10)
+  })
+)
+
+# Legg til vanlige gennavn
+hub.genes$Symbol <- unname(
+  AnnotationDbi::mapIds(
+    org.Hs.eg.db,
+    keys = as.character(hub.genes$EntrezID),
+    column = "SYMBOL",
+    keytype = "ENTREZID",
+    multiVals = "first"
+  )
+)
+
+hub.genes
+
+# Hent korrigerte p-verdier fra DESeq2
+hub.genes$AD_FDR <- res.AD$padj[
+  match(hub.genes$EntrezID, rownames(res.AD))
+]
+
+hub.genes$Braak_FDR <- res.braak$padj[
+  match(hub.genes$EntrezID, rownames(res.braak))
+]
+
+# Marker signifikante sammenhenger
+hub.genes$AD_significant <- (
+  !is.na(hub.genes$AD_FDR) & hub.genes$AD_FDR < 0.05
+)
+
+hub.genes$Braak_significant <- (
+  !is.na(hub.genes$Braak_FDR) & hub.genes$Braak_FDR < 0.05
+)
+
+hub.genes
+
+```
+```{r,regulatoranalyse }
+library(enrichR)
+
+# Hent oversikten over tilgjengelige databaser
+enrichr.databases <- enrichR::listEnrichrDbs()
+
+# Vis databaser med ChEA i navnet
+enrichr.databases[
+  grepl("ChEA", enrichr.databases$libraryName),
+  "libraryName",
+  drop = FALSE
+]
+
+# Koble Entrez-ID-er til vanlige gennavn
+gene.symbols <- AnnotationDbi::mapIds(
+  org.Hs.eg.db,
+  keys = as.character(background.genes),
+  column = "SYMBOL",
+  keytype = "ENTREZID",
+  multiVals = "first"
+)
+
+# Bakgrunn: alle kartlagte gener fra WGCNA
+background.symbols <- unique(
+  na.omit(unname(gene.symbols))
+)
+
+# Gennavn for hver modul
+module.symbols <- lapply(module.genes, function(genes) {
+  unique(na.omit(
+    unname(gene.symbols[as.character(genes)])
+  ))
+})
+
+# Kjør regulatoranalysen separat for hver modul
+regulator.results <- lapply(
+  module.symbols,
+  function(genes) {
+    enrichR::enrichr(
+      genes = genes,
+      databases = "ChEA_2022",
+      background = background.symbols
+    )[["ChEA_2022"]]
+  }
+)
+
+# Vis opptil fem signifikante treff per modul
+for (module in names(regulator.results)) {
+  cat("\nModul:", module, "\n")
+
+  result <- regulator.results[[module]]
+  result <- result[
+    !is.na(result$Adjusted.P.value) &
+      result$Adjusted.P.value < 0.05,
+    ,
+    drop = FALSE
+  ]
+
+  result <- result[order(result$Adjusted.P.value), ]
+
+  print(head(
+    result[, c("Term", "Adjusted.P.value")],
+    5
+  ))
+}
+```
+
+```{r, kontoll gen 4490}
+# Hent normaliserte tellinger for genet
+gene.check <- data.frame(
+  sample = colnames(dds.de),
+  expression = as.numeric(
+    DESeq2::counts(dds.de, normalized = TRUE)["4490", ]
+  ),
+  braak = colData(dds.de)$braak,
+  diagnosis = colData(dds.de)$diagnosis
+)
+
+# Vis uttrykket i hver prøve, gruppert etter Braak
+ggplot2::ggplot(
+  gene.check,
+  ggplot2::aes(
+    x = braak,
+    y = log2(expression + 1),
+    color = diagnosis
+  )
+) +
+  ggplot2::geom_jitter(width = 0.15, height = 0, alpha = 0.7) +
+  ggplot2::labs(
+    title = "Kontroll av gen 4490",
+    x = "Braak-stadium",
+    y = "log2(normaliserte tellinger + 1)",
+    color = "Diagnose"
+  ) +
+  ggplot2::theme_bw()
+
+# Vis prøvene med høyest uttrykk
+head(
+  gene.check[order(gene.check$expression, decreasing = TRUE), ],
+  10
+)
+# Vis hele Braak-resultatet for genet
+as.data.frame(res.braak["4490", ])
+
+# Undersøk prøvenes innflytelse på modellen
+cooks.4490 <- assays(dds.de)[["cooks"]]["4490", ]
+
+# Vis de fem høyeste Cook's distance-verdiene
+head(sort(cooks.4490, decreasing = TRUE), 5)
+
+# Hent informasjon om modelltilpasningen
+fit.check <- as.data.frame(S4Vectors::mcols(dds.braak))
+
+# Vis konvergensinformasjon for gen 4490
+fit.columns <- grep(
+  "Conv",
+  colnames(fit.check),
+  value = TRUE
+)
+
+fit.check["4490", fit.columns, drop = FALSE]
+```
 ```{r}
 
 ```
@@ -505,7 +950,6 @@ joint.results
 ```{r}
 
 ```
-
 ```{r}
 
 ```
@@ -513,11 +957,6 @@ joint.results
 ```{r}
 
 ```
-
-```{r}
-
-```
-
 ```{r}
 
 ```
