@@ -49,8 +49,24 @@ Are the gene co-expression modules associated with Braak stage in the fusiform g
 
 
 # Results
+![Figur 1.PCA av VST-transformert genuttrykk. Hvert punkt representerer en prøve, farget etter diagnose.](figures/PCA_diagnosis.png)
+![Figur 2. Samme PCA som i figur 1, men med prøvene farget etter Braak-stadium.](figures/PCA_Braak-stadium.png)
+PC1 forklarte 26 % og PC2 forklarte 22 % av variasjonen i genuttrykket. Begge figurene viser samme PCA, men med ulik fargelegging. Alzheimer-gruppen og kontrollgruppen overlappet, men kontrollprøvene lå hovedsakelig mot høyre langs PC1, mens Alzheimer-prøvene var mer spredt (figur 1). Prøver med høyere Braak-stadium hadde en tendens til å ligge mot venstre langs PC1, mens lavere stadier oftere lå mot høyre (figur 2). Det var likevel ingen tydelig atskillelse mellom gruppene.
+
+![Figur 3. Modulenes korrelasjoner med Alzheimer-diagnose og Braak-stadium. Rødt viser positiv og blått negativ korrelasjon. * markerer FDR < 0,05. Ujusterte analyser.](figures/Heatmap.png)
+WGCNA identifiserte 20 genmoduler, mens 3 216 gener ikke ble tildelt en modul. I de ujusterte analysene var 13 moduler signifikant assosiert med Alzheimer-diagnose og 11 med Braak-stadium (FDR < 0,05). Alle de 11 Braak-assosierte modulene var også assosiert med diagnose (figur 3). Pink-modulen hadde den sterkeste positive korrelasjonen med begge variablene (henholdsvis 0,42 og 0,43), mens brown-modulen hadde den sterkeste negative korrelasjonen (−0,38 og −0,37).
+
+Etter justering for alder og kjønn var 12 moduler signifikant assosiert med Alzheimer. Når også Braak-stadium ble inkludert i modellen, var 10 moduler assosiert med diagnose og seks med Braak-stadium. Fire moduler – blue, brown, pink og red – var assosiert med begge (FDR < 0,05).
 
 
+![Figur 4. GO-anrikning av biologiske prosesser i modulene pink, brown, magenta og green. Punktstørrelsen viser antall gener, fargen viser justert p-verdi, og GeneRatio viser andelen av modulens GO-annoterte gener knyttet til prosessen.](figures/GO.png)
+GO-analysen viste at gener knyttet til nukleosomorganisering og organisering av protein–DNA-komplekser var overrepresentert i pink-modulen. I brown-modulen var gener knyttet til signaloverføring mellom nerveceller overrepresentert. Magenta-modulen hadde overrepresentasjon av gener knyttet til dannelse av myelin, det isolerende laget rundt aksoner. I green-modulen var det sterkeste funnet knyttet til proteinsyntese i cytoplasmaet (figur 4). Alle disse funnene hadde justert p-verdi < 0,05.
+
+KEGG-analysen viste overrepresentasjon av gener knyttet til ATP-avhengig kromatinremodellering i pink-modulen, nevroaktiv signalering og glutamaterg synapse i brown-modulen, steroidbiosyntese i magenta-modulen og ribosomer i green-modulen (justert p < 0,05). Pathview-figuren for glutamaterg synapse viste lavere uttrykk av flere kartlagte gener i Alzheimer-gruppen sammenlignet med kontrollgruppen.
+
+DESeq2 identifiserte 8 473 gener assosiert med diagnose og 3 205 med Braak-stadium etter justering for alder, kjønn og henholdsvis Braak eller diagnose (FDR < 0,05). Blant de ti utvalgte hub-genene i hver modul var alle ti i brown-modulen signifikant assosiert med både diagnose og Braak. I pink-modulen var alle ti assosiert med diagnose og ni med Braak.
+
+Regulatoranalysen viste overrepresentasjon av kjente målgener for blant annet FOXA2 i pink-modulen, SMAD4 og TCF4 i brown-modulen og MYC i green-modulen. Magenta-modulen hadde ingen signifikante treff i ChEA_2022 (justert p < 0,05).
 
 # Discussion
 
