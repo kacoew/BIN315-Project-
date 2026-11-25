@@ -241,7 +241,7 @@ softPower <- 20
 
 ```
 
-```{r, WGCNA, results='hide', message=FALSE}
+```{r, WGCNA}
 
 # Gjør analysen mer reproduserbar
 set.seed(3)
@@ -275,6 +275,7 @@ table(modules$colors)
 ```
 
 ```{r, klargjor traits}
+
 # Diagnose: kontroll = 0, AD = 1
 traits$AD <- ifelse(traits$diagnosis == "AD", 1, 0)
 
@@ -289,6 +290,7 @@ table(traits$diagnosis, traits$AD, useNA = "ifany")
 table(traits$braak, traits$braak.numeric, useNA = "ifany")
 ```
 ```{r, sammenhenger}
+
 # Utelat grey, som inneholder gener uten modultilhørighet
 MEs <- modules$MEs
 MEs <- MEs[, colnames(MEs) != "MEgrey", drop = FALSE]
@@ -327,6 +329,7 @@ module.results <- do.call(
 )
 
 # Korriger for at vi tester mange moduler
+
 module.results$Diagnosis_FDR <- p.adjust(
   module.results$Diagnosis_p, method = "BH"
 )
@@ -341,6 +344,7 @@ module.results
 ```
 
 ```{r, heatmap}
+
 # Samle korrelasjonene i en matrise
 cor.matrix <- as.matrix(
   module.results[, c("Diagnosis_r", "Braak_rho")]
@@ -385,6 +389,7 @@ WGCNA::labeledHeatmap(
 ```
 
 ```{r, sammenheng med diagnose når kjønn og alder tas med}
+
 # Klargjør alder og kjønn
 trait.data$age <- as.numeric(trait.data$age)
 trait.data$sex <- factor(trait.data$sex)
@@ -414,12 +419,14 @@ adjusted.results <- do.call(
 )
 
 # Korriger for testing av mange moduler
+
 adjusted.results$AD_FDR <- p.adjust(
   adjusted.results$AD_p,
   method = "BH"
 )
 
 # Vis de minste korrigerte p-verdiene først
+
 adjusted.results <- adjusted.results[
   order(adjusted.results$AD_FDR),
 ]
@@ -428,6 +435,7 @@ adjusted.results
 ```
 
 ```{r, diagnose og braak}
+
 # Sett Braak-stadiene i riktig rekkefølge
 braak.stage <- factor(
   traits$braak,
@@ -442,7 +450,7 @@ table(
 )
 ```
 
-```{r, moduler- diagnos og braak}
+```{r, moduler-diagnos-braak}
 
 # Braak behandles som seks kategorier
 trait.data$braak.factor <- factor(
@@ -499,6 +507,7 @@ joint.results
 ```
 
 ```{r, genlister moduler}
+
 # Kontroller at hvert gen har en modulmerking
 stopifnot(length(modules$colors) == ncol(datExpr))
 
@@ -522,6 +531,7 @@ background.genes <- colnames(datExpr)
 ```
 
 ```{r, GO }
+
 library(clusterProfiler)
 library(org.Hs.eg.db)
 
@@ -542,6 +552,7 @@ go.pink <- enrichGO(
 head(as.data.frame(go.pink)[, c(
   "Description", "GeneRatio", "p.adjust", "Count"
 )])
+
 
 # Samme analyse for de tre neste modulene
 other.modules <- c("brown", "magenta", "green")
@@ -576,7 +587,9 @@ for (module in other.modules) {
 
 ```
 
+
 ```{r, GO figur}
+
 # Samle resultatene fra alle fire modulene
 go.all <- c(list(pink = go.pink), go.other)
 
@@ -594,6 +607,34 @@ for (module in names(go.all)) {
 }
 
 
+```
+```{r, samle GO figurene}
+library(enrichplot)
+library(ggplot2)
+library(patchwork)
+
+# Lag ett plott for hver modul
+p.pink <- dotplot(go.pink, showCategory = 5) +
+  ggtitle("Pink")
+
+p.brown <- dotplot(go.other[["brown"]], showCategory = 5) +
+  ggtitle("Brown")
+
+p.magenta <- dotplot(go.other[["magenta"]], showCategory = 5) +
+  ggtitle("Magenta")
+
+p.green <- dotplot(go.other[["green"]], showCategory = 5) +
+  ggtitle("Green")
+
+# Samle plottene i to rader
+go.figure <- (p.pink | p.brown) / (p.magenta | p.green)
+
+go.figure
+
+# Lagre bildet i prosjektmappen
+ggsave("GO_modules.png", go.figure,
+       width = 14, height = 11, units = "in", dpi = 300)
+       
 ```
 
 ```{r, KEGG}
