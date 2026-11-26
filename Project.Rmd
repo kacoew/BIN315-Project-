@@ -1,57 +1,64 @@
 ---
 title: "Project"
-author: "Kachina Aschenberg Øwre & Charlene A Boyle"
+author: "Kachina A Øwre & Charlene A Boyle"
 date: "2026-10-27"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
+    theme: spacelab
+    highlight: tango
+    toc: true
+    toc_float: true
+    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+------------------------------------------------------------------------
 
--------------------------------------------------------------------------
-bjabdxwio
-# CANVAS
+Write a short research paper (approximately 1500 words) using RMarkdown: Abstract, Introduction, Methods, Results, Discussion and References.
 
-In this project you will analyse a data set of your choice using methods covered in this course. You will then write and hand in a research paper. 
+Hold a presentation (10 min) for the teachers highlighting your main findings. 
 
-Two typical analysis pipelines could look like this:
+Data should be FAIR (ACRONYM)
 
-Supervised learning: (a) PCA/hierarchal clustering/heatmap to get an initial overview of the data, (b) differential expression analysis to reduce the dimensionality, (c) machine learning to predict outcome, (d) extract some biological insight from the machine learning model.
-Unsupervised learning: (a) PCA/hierarchal clustering/heatmap to get an initial overview of the data, (b) network analysis and module detection, (c) GO enrichment analysis of modules, (d) pathway analysis of selected pathways.
-Work in groups of four.
+------------------------------------------------------------------------
 
-Some suggested data sets:
+# Abstract
+150 ord - spørsmål -> data -> metode -> hovedfunn -> betydning
 
-Do you have a fitting data set as part of your Master or PhD work? This would be a great opportunity to start working on that data set!
-Revisit Assignment 5 (Week 5). The Cancer Genome Atlas (TCGA) Research Network has some amazing data sets for supervised learning. 
-My wood formation data set is a good starting point for applying various unsupervised methods such as clustering and network analysis.
-You can also take data from one of the other papers you have read during this course, or find a new paper.
-The ENCODE project has a whole host of relevant functional genomics data sets.
-Search for datasets in EBI's Expression Atlas.
-Some additional datasets that we have found:
-Myocardial Gene Expression Signatures in Human Heart Failure With Preserved Ejection Fraction is another good starting point for applying various methods such as clustering and network analysis. You can download the count data from https://zenodo.org/
-... more to come.
-EXAMINATION
+# Introduction
+~300 ord. Plan: AD → Braak → fusiform gyrus → kunnskapshull + spørsmål.
+Unsupervised learning: (a) PCA/hierarchal clustering/heatmap to get an initial overview of the data, (b) network analysis and module detection, (c) GO enrichment analysis of modules, (d) pathway analysis of selected pathways. Work in groups of four.
 
-PROJECT PREPARATION  DEADLINE: Sign up to one of the groups here in Canvas (the Project group set) and submit a shell RMarkdown generated html report: It should contain the names of the group members, headers (Abstract, Introduction, Methods, Results, Discussion and References) and a short description of the data set you want to work on and the methods you plan to apply (write this text in the Methods-section).
 
-REPORT DEADLINE: Write a short research paper (approximately 1500 words) using RMarkdown: Abstract, Introduction, Methods, Results, Discussion and References.
+## Research question
 
-PRESENTATION: Hold a presentation (10 min) for the teachers highlighting your main findings. This will be organized during the Thursday and Friday scheduled hours the last week of the course.
+Are the gene co-expression modules associated with Braak stage in the fusiform gyrus the same as those associated with Alzheimer’s disease diagnosis, and what functions do they have?
 
-Help? There will be no lectures during the project period, but you can get help on Thursdays and Fridays.
+# Methods
+forteller hva vi gjorde, ingen resultater.
 
--------------------------------------------------------------------------
+## Analysis overview
 
-cool and funny datasets!!!!!!!
+1.  **Filtering and normalization** (Lab 2): genes with ≥ 10 counts in ≥ 20 % of samples (58 of 289) kept → 21 487 genes; variance-stabilizing transformation (VST, DESeq2, `blind = TRUE`)
+2.  **Overview** (Lab 4): PCA on all VST genes; hierarchical clustering of samples (Euclidean distance, complete linkage), coloured by diagnosis and Braak stage
+3.  **Co-expression network** (Lab 6): signed WGCNA, soft-threshold power 20 (scale-free fit R² ≥ 0.80), `minModuleSize = 40`, `mergeCutHeight = 0.25` → 20 modules
+4.  **Module–trait association** (Lab 6): module eigengenes vs. diagnosis (Pearson) and Braak stage I–VI (Spearman); linear models adjusted for age and sex; joint model testing Braak beyond diagnosis; Benjamini–Hochberg FDR
+5.  **Functional enrichment** (Lab 3/7): GO biological processes and KEGG (clusterProfiler) for the pink, brown, magenta and green modules, all network genes as background; transcription-factor targets (Enrichr, ChEA 2022)
+6.  **Differential expression** (Lab 3): DESeq2, design `~ age + sex + braak + diagnosis`; Wald test AD vs. control; likelihood-ratio test for Braak beyond diagnosis
+7.  **Pathway analysis** (Lab 7): log2 fold changes (AD vs. control) on the KEGG glutamatergic synapse pathway (hsa04724), pathview
+8.  **Hub genes** (Lab 6): top 10 genes by module membership (kME) per selected module, compared with the DESeq2 results
 
-ha med metode del
+## Data
 
-hva forventer de: data should be FAIR (ACRNYM)
+Gene expression data were obtained from the Gene Expression Omnibus (GEO; accession GSE125583) (Srinivasan et al. 2020). 
 
+The dataset contains bulk RNA-seq of post-mortem fusiform gyrus tissue from 219 patients with Alzheimer's disease (AD) and 70 age-matched, neurologically normal controls, sequenced on an Illumina HiSeq 2500. 
+
+We used the raw count table generated by NCBI (reads aligned to GRCh38.p13; 39,376 genes). Diagnosis, age, sex and Braak stage (I–VI) were extracted from the GEO series matrix. Braak stage was missing for two samples, and age and sex for one sample each.
 
 ```{r, innlesing}
 # Gentellinger: gener i rader og prøver i kolonner
@@ -74,6 +81,14 @@ dim(traits)
 counts[1:4, 1:4]
 head(traits)
 ```
+
+## Preprocessing
+
+Genes with at least 10 counts in at least 20% of the samples (58 of 289) were kept, leaving 21,487 genes. 
+
+Counts were normalized for library size and transformed with the variance-stabilizing transformation (VST) in DESeq2 (Love et al. 2014). 
+
+Transformed data were explored with Principal Component Analysis (PCA) and hierarchical clustering of samples (Euclidean distance, complete linkage).
 
 ```{r, filtrere data}
 # Minste antall prøver: 20 % av alle prøvene, rundet opp
@@ -110,6 +125,30 @@ expr <- assay(vst)
 
 dim(expr)
 ```
+
+## Co-expression network analysis
+
+A signed co-expression network was built from all 21,487 genes with WGCNA (Langfelder & Horvath 2008). The soft-thresholding power was set to 20, the lowest power giving a scale-free fit (R²) of at least 0.80. Modules were detected with `blockwiseModules` (maximum block size 5,000 genes, minimum module size 40, merge cut height 0.25).
+
+## Module–trait association
+
+Each module was summarized by its eigengene, the first principal component of its genes. Eigengenes were correlated with diagnosis (AD = 1, control = 0; Pearson) and Braak stage (coded 1–6; Spearman). Associations with diagnosis were also tested in linear models adjusted for age and sex. To separate pathology from clinical diagnosis, a joint model with diagnosis, Braak stage (as a factor), age and sex was compared with reduced models without Braak stage or without diagnosis using F-tests. P-values were adjusted with the Benjamini–Hochberg method, and FDR \< 0.05 was considered significant (Benjamini & Hochberg 1995).
+
+## Functional enrichment
+
+Four modules (pink, brown, magenta and green) were selected for functional analysis. <!-- TODO: add one sentence on WHY these four were chosen --> Enrichment of Gene Ontology biological processes and KEGG pathways was tested with clusterProfiler (Xu et al. 2024), with all network genes as background. Hub genes were defined as the ten genes with the highest module membership (kME), i.e. the strongest correlation with the module eigengene. Possible upstream regulators were explored with the ChEA 2022 library in Enrichr (Kuleshov et al. 2016).
+
+## Differential expression and pathway analysis
+
+Differential expression was tested with DESeq2 in the 287 samples with complete information, using the design `~ age + sex + braak + diagnosis`. AD and controls were compared with a Wald test, and the effect of Braak stage beyond diagnosis was tested with a likelihood-ratio test against the reduced model `~ age + sex + diagnosis`. Genes with adjusted p \< 0.05 were considered significant. Log2 fold changes for AD versus control were mapped onto the KEGG glutamatergic synapse pathway (hsa04724) with pathview (Luo & Brouwer 2013).
+
+## Software
+
+All analyses were performed in R using DESeq2, WGCNA, clusterProfiler, org.Hs.eg.db, enrichR, pathview and ggplot2.
+
+# Results
+
+## Overview
 
 ```{r, PCA, alzheimer og kontrollgruppe}
 library(ggplot2)
@@ -205,6 +244,8 @@ plotDendroAndColors(
 
 ```
 
+## Co-expression modules
+
 ```{r, WGCNA prep}
 # Snu matrisen: prøver i rader, gener i kolonner
 datExpr <- t(expr)
@@ -220,7 +261,7 @@ dim(datExpr)
 
 ```
 
-```{r, velge en power verdi}
+```{r power, cache = TRUE}
 
 # Test flere power-verdier
 powers <- c(1:10, seq(12, 30, by = 2))
@@ -241,7 +282,7 @@ softPower <- 20
 
 ```
 
-```{r, WGCNA, results='hide', message=FALSE}
+```{r WGCNA, cache = TRUE, results = 'hide', message = FALSE}
 
 # Gjør analysen mer reproduserbar
 set.seed(3)
@@ -272,7 +313,7 @@ MEs <- modules$MEs
 table(modules$colors)
 ```
 
-```
+## Module–trait relationships
 
 ```{r, klargjor traits}
 # Diagnose: kontroll = 0, AD = 1
@@ -288,6 +329,7 @@ traits$braak.numeric <- match(
 table(traits$diagnosis, traits$AD, useNA = "ifany")
 table(traits$braak, traits$braak.numeric, useNA = "ifany")
 ```
+
 ```{r, sammenhenger}
 # Utelat grey, som inneholder gener uten modultilhørighet
 MEs <- modules$MEs
@@ -498,6 +540,8 @@ joint.results
 
 ```
 
+## Functional enrichment
+
 ```{r, genlister moduler}
 # Kontroller at hvert gen har en modulmerking
 stopifnot(length(modules$colors) == ncol(datExpr))
@@ -521,7 +565,7 @@ background.genes <- colnames(datExpr)
 
 ```
 
-```{r, GO }
+```{r GO, cache = TRUE}
 library(clusterProfiler)
 library(org.Hs.eg.db)
 
@@ -596,7 +640,7 @@ for (module in names(go.all)) {
 
 ```
 
-```{r, KEGG}
+```{r KEGG, cache = TRUE}
 # KEGG-analyse for hver av de fire modulene
 kegg.results <- setNames(
   lapply(names(module.genes), function(module) {
@@ -626,202 +670,7 @@ for (module in names(kegg.results)) {
 
 ```
 
-```{r, DESeq2-klargjoring}
-# Lag en egen kopi av prøveinformasjonen
-de.traits <- traits
-
-# Klargjør variablene
-de.traits$diagnosis <- factor(
-  de.traits$diagnosis,
-  levels = c("control", "AD")
-)
-
-de.traits$braak <- factor(
-  de.traits$braak,
-  levels = c("I", "II", "III", "IV", "V", "VI")
-)
-
-de.traits$age <- as.numeric(de.traits$age)
-de.traits$sex <- factor(de.traits$sex)
-
-# Behold prøver med informasjon om alle fire variablene
-keep.samples <- complete.cases(
-  de.traits[, c("diagnosis", "braak", "age", "sex")]
-)
-
-de.traits <- de.traits[keep.samples, ]
-rownames(de.traits) <- de.traits$sample
-
-# Hent råtellingene i samme rekkefølge som prøveinformasjonen
-de.counts <- as.matrix(
-  counts.filtered[, de.traits$sample, drop = FALSE]
-)
-
-# Kontroller at rekkefølgen matcher
-stopifnot(
-  identical(colnames(de.counts), rownames(de.traits))
-)
-
-# Samle dataene i et nytt DESeq2-objekt
-dds.de <- DESeq2::DESeqDataSetFromMatrix(
-  countData = de.counts,
-  colData = de.traits,
-  design = ~ age + sex + braak + diagnosis
-)
-
-# Kontroller antall gener og prøver
-dim(dds.de)
-
-```
-
-```{r, DESeq2-diagnose:}
-# Kjør analysen
-dds.de <- DESeq2::DESeq(dds.de)
-
-# AD sammenlignet med kontroll
-res.AD <- DESeq2::results(
-  dds.de,
-  contrast = c("diagnosis", "AD", "control"),
-  alpha = 0.05
-)
-
-# Antall signifikante gener etter korreksjon for mange tester
-sum(res.AD$padj < 0.05, na.rm = TRUE)
-
-# Vis de seks genene med lavest korrigert p-verdi
-res.AD.sorted <- res.AD[order(res.AD$padj), ]
-
-head(as.data.frame(res.AD.sorted)[, c(
-  "baseMean", "log2FoldChange", "pvalue", "padj"
-)])
-
-```
-
-```{r, DESeq2-braak}
-
-# Test hva Braak tilfører utover alder, kjønn og diagnose
-dds.braak <- DESeq2::nbinomLRT(
-  dds.de,
-  reduced = ~ age + sex + diagnosis
-)
-
-res.braak <- DESeq2::results(
-  dds.braak,
-  alpha = 0.05
-)
-
-# Antall signifikante gener for hver analyse
-c(
-  AD = sum(res.AD$padj < 0.05, na.rm = TRUE),
-  Braak = sum(res.braak$padj < 0.05, na.rm = TRUE)
-)
-
-# Vis de seks sterkeste Braak-resultatene
-res.braak.sorted <- res.braak[order(res.braak$padj), ]
-
-head(as.data.frame(res.braak.sorted)[, c(
-  "baseMean", "stat", "pvalue", "padj"
-)])
-
-c(
-  AD = sum(res.AD$padj < 0.05, na.rm = TRUE),
-  Braak = sum(res.braak$padj < 0.05, na.rm = TRUE)
-)
-```
-```{r, pathway synapse}
-
-library(pathview)
-data("bods", package = "pathview")
-data("korg", package = "pathview")
-
-# Hent log2-fold change og bruk Entrez-ID som navn
-gene.effects <- res.AD$log2FoldChange
-names(gene.effects) <- rownames(res.AD)
-
-# Fjern verdier som mangler eller ikke er endelige
-gene.effects <- gene.effects[is.finite(gene.effects)]
-
-# Lag en mappe til figuren
-dir.create("figures", showWarnings = FALSE)
-
-# Tegn pathway-kartet
-pv.synapse <- pathview::pathview(
-  gene.data = gene.effects,
-  gene.idtype = "entrez",
-  pathway.id = "04724",
-  species = "hsa",
-  node.sum = "mean",
-  limit = list(gene = 2),
-  out.suffix = "AD_vs_control",
-  kegg.dir = "figures"
-)
-
-# Vis figuren i R Markdown
-knitr::include_graphics("hsa04724.AD_vs_control.png")
-
-```
-
-```{r, hub gener}
-# Finn de ti genene som følger hver modul tettest
-hub.genes <- do.call(
-  rbind,
-  lapply(names(module.genes), function(module) {
-
-    genes <- module.genes[[module]]
-
-    # Korrelasjon mellom hvert gen og modulens eigengene
-    kME <- as.numeric(cor(
-      datExpr[, genes, drop = FALSE],
-      MEs[[paste0("ME", module)]],
-      use = "pairwise.complete.obs"
-    ))
-
-    result <- data.frame(
-      Module = module,
-      EntrezID = genes,
-      kME = kME
-    )
-
-    result <- result[order(result$kME, decreasing = TRUE), ]
-    head(result, 10)
-  })
-)
-
-# Legg til vanlige gennavn
-hub.genes$Symbol <- unname(
-  AnnotationDbi::mapIds(
-    org.Hs.eg.db,
-    keys = as.character(hub.genes$EntrezID),
-    column = "SYMBOL",
-    keytype = "ENTREZID",
-    multiVals = "first"
-  )
-)
-
-hub.genes
-
-# Hent korrigerte p-verdier fra DESeq2
-hub.genes$AD_FDR <- res.AD$padj[
-  match(hub.genes$EntrezID, rownames(res.AD))
-]
-
-hub.genes$Braak_FDR <- res.braak$padj[
-  match(hub.genes$EntrezID, rownames(res.braak))
-]
-
-# Marker signifikante sammenhenger
-hub.genes$AD_significant <- (
-  !is.na(hub.genes$AD_FDR) & hub.genes$AD_FDR < 0.05
-)
-
-hub.genes$Braak_significant <- (
-  !is.na(hub.genes$Braak_FDR) & hub.genes$Braak_FDR < 0.05
-)
-
-hub.genes
-
-```
-```{r,regulatoranalyse }
+```{r regulatoranalyse, cache = TRUE}
 library(enrichR)
 
 # Hent oversikten over tilgjengelige databaser
@@ -888,6 +737,111 @@ for (module in names(regulator.results)) {
 }
 ```
 
+## Differential expression
+
+```{r, DESeq2-klargjoring}
+# Lag en egen kopi av prøveinformasjonen
+de.traits <- traits
+
+# Klargjør variablene
+de.traits$diagnosis <- factor(
+  de.traits$diagnosis,
+  levels = c("control", "AD")
+)
+
+de.traits$braak <- factor(
+  de.traits$braak,
+  levels = c("I", "II", "III", "IV", "V", "VI")
+)
+
+de.traits$age <- as.numeric(de.traits$age)
+de.traits$sex <- factor(de.traits$sex)
+
+# Behold prøver med informasjon om alle fire variablene
+keep.samples <- complete.cases(
+  de.traits[, c("diagnosis", "braak", "age", "sex")]
+)
+
+de.traits <- de.traits[keep.samples, ]
+rownames(de.traits) <- de.traits$sample
+
+# Hent råtellingene i samme rekkefølge som prøveinformasjonen
+de.counts <- as.matrix(
+  counts.filtered[, de.traits$sample, drop = FALSE]
+)
+
+# Kontroller at rekkefølgen matcher
+stopifnot(
+  identical(colnames(de.counts), rownames(de.traits))
+)
+
+# Samle dataene i et nytt DESeq2-objekt
+dds.de <- DESeq2::DESeqDataSetFromMatrix(
+  countData = de.counts,
+  colData = de.traits,
+  design = ~ age + sex + braak + diagnosis
+)
+
+# Kontroller antall gener og prøver
+dim(dds.de)
+
+```
+
+```{r DESeq2-diagnose, cache = TRUE}
+# Kjør analysen
+dds.de <- DESeq2::DESeq(dds.de)
+
+# AD sammenlignet med kontroll
+res.AD <- DESeq2::results(
+  dds.de,
+  contrast = c("diagnosis", "AD", "control"),
+  alpha = 0.05
+)
+
+# Antall signifikante gener etter korreksjon for mange tester
+sum(res.AD$padj < 0.05, na.rm = TRUE)
+
+# Vis de seks genene med lavest korrigert p-verdi
+res.AD.sorted <- res.AD[order(res.AD$padj), ]
+
+head(as.data.frame(res.AD.sorted)[, c(
+  "baseMean", "log2FoldChange", "pvalue", "padj"
+)])
+
+```
+
+```{r DESeq2-braak, cache = TRUE}
+
+# Test hva Braak tilfører utover alder, kjønn og diagnose
+dds.braak <- DESeq2::nbinomLRT(
+  dds.de,
+  reduced = ~ age + sex + diagnosis
+)
+
+res.braak <- DESeq2::results(
+  dds.braak,
+  alpha = 0.05
+)
+
+# Antall signifikante gener for hver analyse
+c(
+  AD = sum(res.AD$padj < 0.05, na.rm = TRUE),
+  Braak = sum(res.braak$padj < 0.05, na.rm = TRUE)
+)
+
+# Vis de seks sterkeste Braak-resultatene
+res.braak.sorted <- res.braak[order(res.braak$padj), ]
+
+head(as.data.frame(res.braak.sorted)[, c(
+  "baseMean", "stat", "pvalue", "padj"
+)])
+
+c(
+  AD = sum(res.AD$padj < 0.05, na.rm = TRUE),
+  Braak = sum(res.braak$padj < 0.05, na.rm = TRUE)
+)
+```
+
 ```{r, kontoll gen 4490}
 # Hent normaliserte tellinger for genet
 gene.check <- data.frame(
@@ -943,24 +897,113 @@ fit.columns <- grep(
 
 fit.check["4490", fit.columns, drop = FALSE]
 ```
-```{r}
+
+## Pathway analysis
+
+```{r pathway-synapse, cache = TRUE}
+
+library(pathview)
+data("bods", package = "pathview")
+data("korg", package = "pathview")
+
+# Hent log2-fold change og bruk Entrez-ID som navn
+gene.effects <- res.AD$log2FoldChange
+names(gene.effects) <- rownames(res.AD)
+
+# Fjern verdier som mangler eller ikke er endelige
+gene.effects <- gene.effects[is.finite(gene.effects)]
+
+# Lag en mappe til figuren
+dir.create("figures", showWarnings = FALSE)
+
+# Tegn pathway-kartet
+pv.synapse <- pathview::pathview(
+  gene.data = gene.effects,
+  gene.idtype = "entrez",
+  pathway.id = "04724",
+  species = "hsa",
+  node.sum = "mean",
+  limit = list(gene = 2),
+  out.suffix = "AD_vs_control",
+  kegg.dir = "figures"
+)
+
+# Vis figuren i R Markdown
+knitr::include_graphics("hsa04724.AD_vs_control.png")
+
+```
+
+## Hub genes
+
+```{r, hub gener}
+# Finn de ti genene som følger hver modul tettest
+hub.genes <- do.call(
+  rbind,
+  lapply(names(module.genes), function(module) {
+
+    genes <- module.genes[[module]]
+
+    # Korrelasjon mellom hvert gen og modulens eigengene
+    kME <- as.numeric(cor(
+      datExpr[, genes, drop = FALSE],
+      MEs[[paste0("ME", module)]],
+      use = "pairwise.complete.obs"
+    ))
+
+    result <- data.frame(
+      Module = module,
+      EntrezID = genes,
+      kME = kME
+    )
+
+    result <- result[order(result$kME, decreasing = TRUE), ]
+    head(result, 10)
+  })
+)
+
+# Legg til vanlige gennavn
+hub.genes$Symbol <- unname(
+  AnnotationDbi::mapIds(
+    org.Hs.eg.db,
+    keys = as.character(hub.genes$EntrezID),
+    column = "SYMBOL",
+    keytype = "ENTREZID",
+    multiVals = "first"
+  )
+)
+
+hub.genes
+
+# Hent korrigerte p-verdier fra DESeq2
+hub.genes$AD_FDR <- res.AD$padj[
+  match(hub.genes$EntrezID, rownames(res.AD))
+]
+
+hub.genes$Braak_FDR <- res.braak$padj[
+  match(hub.genes$EntrezID, rownames(res.braak))
+]
+
+# Marker signifikante sammenhenger
+hub.genes$AD_significant <- (
+  !is.na(hub.genes$AD_FDR) & hub.genes$AD_FDR < 0.05
+)
+
+hub.genes$Braak_significant <- (
+  !is.na(hub.genes$Braak_FDR) & hub.genes$Braak_FDR < 0.05
+)
+
+hub.genes
 
 ```
 
 ```{r}
 
 ```
-```{r}
-
-```
 
 ```{r}
 
 ```
-```{r}
 
-```
+# Discussion
 
-```{r}
-
-```
+# References
