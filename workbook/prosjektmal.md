@@ -1,7 +1,7 @@
 # 📘 Prosjektmal: BIN315 · GSE125583 · Alzheimer
 
 > **Én fil for alt:** status, filer, plan, skriving, kilder og KI-logg.
-> **Oppdatert:** fredag 27.11.2026 (etter Charlenes commits kl. 11:36)
+> **Oppdatert:** lørdag 28.11.2026 (mangel-liste per del, norsk språk, modul-fil)
 > **Rapporten** skrives i `Project.Rmd`. Denne malen endrer **ingenting** der.
 > **Den andre filen** i `workbook/` er `Project_forklart.html`: rapporten med forklaringer.
 
@@ -36,20 +36,155 @@
 
 ⚠️ **Methods er ~175 ord for lang.** Slett `## Analysis overview`-listen (den gjentar teksten), og kort ned litt.
 
-## 🚨 Ting vi fant i `Project.Rmd` (ikke fikset, det er deres fil)
+## 📋 Hva mangler i rapporten, per del (sjekket lør 28.11)
 
-| # | Hva | Linje | Hvorfor viktig | Slik fikser dere |
-|---|---|---|---|---|
-| 1 | **Rest av Git-konflikt:** `>>>>>>> 0b3a58e…` | 66 | vises som **rar tekst** i rapporten | slett hele linjen |
-| 2 | `#koding` | 60 | et notat som havner i rapporten | slett linjen |
-| 3 | **To `# Results`** + norsk «Metode:» etter Hub genes | 1047–1065 | innholdsfortegnelsen får **to** Results, og Methods står **to ganger** | velg språk, flytt teksten (se del 3) |
-| 4 | Results-tekst for **GO, KEGG, DESeq2, hub, regulatorer** finnes bare i `Project_shell.Rmd` | shell 62–69 | mangler i hovedrapporten | flytt over til `Project.Rmd` |
-| 5 | **Canvas-tekst** over Abstract | 19–27 | oppgaveteksten skal ikke leveres | slett |
-| 6 | Notater: «forteller hva vi gjorde…», «150 ord…», «~300 ord. Plan…», «Unsupervised learning…» | 30, 33–34, 42 | notater, ikke rapporttekst | slett når delen er skrevet |
-| 7 | `<!-- TODO -->` **hvorfor** pink, brown, magenta og green? | 143 | må begrunnes i Methods | spør Charlene |
-| 8 | **Software** mangler R-versjon | 151 | reproduserbarhet | `R.version.string` på maskinen som knitter |
-| 9 | Tom chunk `{r}` | 1043 | ufarlig | kan slettes |
-| 10 | `date: "2026-10-27"`, `title: "Project"` | 3–4 | ser uferdig ut | ekte tittel + leveringsdato |
+**Tegn:** 🔴 må med · 🟡 bør med · 🟢 hvis dere har tid
+**Type:** 📝 tekst · 📖 definisjon · 💻 kode · 🖼️ figur/tabell · 🧹 rydding
+Linjenumrene gjelder `Project.Rmd` per 28.11.
+
+### 🗂️ Hele rapporten
+- ✅ Konfliktrest og `#koding` slettet (28.11)
+- ✅ Språk = **norsk**: din Metode og alle overskrifter er oversatt (28.11)
+- 🔴 💻 **Modul-fila:** Charlene knitter og pusher `data/wgcna_modules.rds` (se under)
+- 🔴 🧹 **Tittel:** `"Project"` → ekte tittel (linje 2)
+- 🔴 🧹 **Dato:** `"2026-10-27"` → `"2026-12-01"` (linje 4)
+- 🔴 🧹 Slett **Canvas-teksten** (linje 19–27)
+- 🔴 🧹 Slett **notatene** når delen er skrevet (linje 30, 33, 34, 42)
+- 🔴 🧹 Slett den **tomme chunken** `{r}` (linje 1051)
+- 🔴 🧹 Bare **én** `# Resultater` og **én** Metode (Charlenes ligger nederst, linje 1055–1072)
+- 🔴 📝 Sjekk **alle tall** i teksten mot den **endelige** knitten
+- 🟡 📝 **Ordtelling** ~1500. Nå ~1240, men ~1060 av dem er Metode (to versjoner)
+- 🟡 🖼️ Figurnumrene i teksten (Figur 1, 2 …) må passe med figurene som vises
+
+### 1 · Sammendrag (~150 ord) · 🔴 mangler helt
+- 🔴 📝 Bakgrunn (1 setning)
+- 🔴 📝 Forskningsspørsmål (1)
+- 🔴 📝 Data og metode (1–2): GSE125583, 289 prøver, WGCNA
+- 🔴 📝 Hovedfunn **med tall** (2)
+- 🔴 📝 Betydning (1)
+- 💡 Skrives **sist**
+
+### 2 · Innledning (~300 ord) · 🔴 mangler helt (fakta og kilder i del 4)
+- 🔴 📝 Alzheimers sykdom: hva det er, og hvorfor det er viktig
+- 🔴 📖 **Amyloid-plakk** og **tau-floker** (1 setning)
+- 🔴 📖 **Braak-stadium**: tau sprer seg i et fast mønster, I → VI (Braak & Braak 1991)
+- 🔴 📖 **Fusiform gyrus**: hvor den ligger, hva den gjør, og når den rammes
+- 🔴 📝 **Kunnskapshullet:** diagnose ≠ patologi. 31 kontroller har Braak IV, og 6 AD-pasienter har Braak I–II
+- 🔴 📖 **Koekspresjon og genmodul**, og hvorfor nettverk (WGCNA) passer
+- ✅ Forskningsspørsmålet finnes (linje 39)
+- 🟡 📝 Hva Srinivasan et al. (2020) fant i det samme datasettet
+
+### 3 · Metode (~300 ord) · 🟡 skrevet, men to ganger og for lang
+- 🔴 🧹 Velg **én** Metode-tekst (din oppe eller Charlenes nederst), eller slå dem sammen
+- 🔴 📝 **TODO:** hvorfor pink, brown, magenta og green? (linje 140)
+- 🔴 🧹 **Rekkefølge:** hub-gen-setningen står under *Funksjonell anrikning* (linje 140), men hub-gener kommer **sist** i Resultater → flytt den til en egen `## Hub-gener` etter *Differensielt uttrykk og pathway-analyse*
+- 🟡 🧹 PCA/klustering-setningen (linje 92) står under *Forbehandling* → egen `## Utforskende analyse`, så Metode speiler Resultater 4.1
+- 🟡 🧹 Charlenes Metode har en **annen rekkefølge** (DESeq2 før GO, regulatorer sist). Bruker dere den, følg rekkefølgen i kartet under
+- 🔴 📝 **Programvare:** R-versjon + pakkeversjoner (linje 148)
+- 🟡 🧹 `## Oversikt over analysen` gjentar teksten → slett eller kort ned (sparer ~200 ord)
+- 🟡 📝 1 setning: modulene ble lagret i en fil, fordi WGCNA ga ulike moduler på to maskiner
+- 🟡 📝 1 setning om **FAIR**: dataene er åpne i GEO, med tilgangsnummer
+- 🟡 📖 **VST**: hvorfor? (variansen blir lik for gener med lave og høye tellinger)
+- 🟡 📖 **Signert nettverk** og **soft threshold** (skalafritt nettverk)
+- 🟡 📖 **GO** og **KEGG**: hva er det?
+- 🟡 📖 **Wald-test** og **likelihood ratio-test**: hva tester hver av dem?
+- 🟡 📖 **ChEA**: lister over målgener for transkripsjonsfaktorer
+- ✅ eigengene, kME og FDR er forklart
+
+### 4 · Resultater (~400 ord) · 🟡 tekst finnes, men på feil sted
+
+**🧭 Riktig rekkefølge: Metode og Resultater skal speile hverandre**
+
+```
+ METODE (## …)                       RESULTATER (## …)
+ Data                                 –
+ Forbehandling (filter, VST)          –
+ Utforskende analyse (PCA, klust.) ↔  Oversikt
+ Koekspresjonsnettverk             ↔  Koekspresjonsmoduler
+ Moduler og kliniske variabler     ↔  Moduler og kliniske variabler
+ Funksjonell anrikning             ↔  Funksjonell anrikning (GO, KEGG, regulatorer)
+ Differensielt uttrykk og pathway  ↔  Differensielt uttrykk  +  Pathway-analyse
+ Hub-gener                         ↔  Hub-gener   (sist: trenger DESeq2-resultatene)
+ Programvare                          –
+```
+
+**Hvor hvert avsnitt skal flyttes** (kode/figur først, så teksten under):
+
+| Avsnitt | Ligger nå | Flytt til |
+|---|---|---|
+| Figur 1–2 + PCA-avsnittet («PC1 forklarte 26 %…») | Project.Rmd 1062–1066 | **4.1 Oversikt** |
+| 1. setning: «WGCNA identifiserte 20 genmoduler…» | Project.Rmd 1070 | **4.2 Koekspresjonsmoduler** |
+| Figur 3 (heatmap) + resten av avsnittet (13 og 11 moduler, pink og brown) | Project.Rmd 1068–1070 | **4.3**, etter heatmap-chunken |
+| «Etter justering for alder og kjønn…» | Project.Rmd 1072 | **4.3**, etter `moduler-diagnos-braak` |
+| Figur 4 + GO-avsnittet | shell 62–63 | **4.4**, etter GO-figuren |
+| KEGG-setningen | shell 65, setning 1 | **4.4**, etter KEGG-chunken |
+| Regulator-avsnittet (FOXA2, SMAD4, TCF4, MYC) | shell 69 | **4.4**, etter `regulatoranalyse` |
+| DESeq2-setningen (8 473 og 3 205 gener) | shell 67, setning 1 | **4.5 Differensielt uttrykk** |
+| Pathview-setningen | shell 65, setning 2 | **4.6 Pathway-analyse** |
+| Hub-gen-setningene | shell 67, setning 2–3 | **4.7 Hub-gener** |
+
+🟢 Tabellen **diagnose × Braak** (chunk `diagnose og braak`, linje 491) beskriver prøvene. Den kan flyttes til *Data* som «Tabell 1».
+
+**Generelt**
+- 🔴 📝 Flytt Charlenes tekst (nederst) inn under riktig `##`
+- 🔴 📝 Flytt teksten om GO, KEGG, DESeq2, hub-gener og regulatorer fra `Project_shell.Rmd` (linje 62–69)
+- 🔴 🖼️ Velg **kode-figurer** eller **faste bilder** (`figures/*.png`), ikke begge
+- 🔴 🖼️ **Figurtekst** (`fig.cap = "Figur 1. …"`) på kode-figurene
+- 🟡 🖼️ Pene tabeller: `knitr::kable(tabell, digits = 3)` i stedet for rå utskrift
+- 🟡 💻 Skjul kontroll-utskrifter (`dim()`, `head()`, `table()`-sjekker) med `results = 'hide'`, uten å slette kode
+
+**Per del**
+- **4.1 Oversikt**
+  - ✅ tekst om PCA og PCA-figurene
+  - 🔴 📝 1 setning om **klustering-treet** (finnes det grupper eller avvikere?)
+- **4.2 Koekspresjonsmoduler**
+  - ✅ tekst (20 moduler, 3 216 grå)
+  - 🟡 📖 **grey** = gener uten modul
+  - 🟡 🖼️ Modulstørrelser som tabell eller søylediagram, ikke rå `table()`
+  - 🟢 🖼️ Plott for **soft threshold** (scale-free fit mot power) i stedet for en tabell
+  - 🟢 🖼️ Gen-dendrogram med modulfarger (`plotDendroAndColors`)
+- **4.3 Moduler og kliniske variabler**
+  - ✅ tekst og heatmap
+  - 🟡 🖼️ `module.results`, `adjusted.results` og `joint.results` som `kable`-tabeller
+  - 🟡 📝 Nevn tabellen **diagnose × Braak** (den viser kontroller med høy Braak)
+- **4.4 Funksjonell anrikning**
+  - 🔴 📝 tekst ligger i shell-fila
+  - 🔴 🖼️ Bare **én** GO-figur. Nå vises 4 enkeltplott + 1 samlet = 5
+  - 🟡 🖼️ KEGG og regulatorer er bare rå utskrift → tabell eller én setning
+  - 🟡 💻 Listen over Enrichr-databaser trenger ikke vises
+- **4.5 Differensielt uttrykk**
+  - 🔴 📝 tekst ligger i shell-fila
+  - 🟡 💻 DESeq2-tallene skrives ut **to ganger** (linje 879 og 891)
+  - 🟡 📝 Chunken «kontroll gen 4490»: forklar **hvorfor** (hvilket gen?), eller skjul den med `include = FALSE`
+  - 🟢 🖼️ Volcano plot
+- **4.6 Pathway-analyse**
+  - 🔴 📝 tekst ligger i shell-fila
+  - 🔴 🖼️ Figurtekst til KEGG-kartet
+- **4.7 Hub-gener**
+  - 🔴 📝 tekst ligger i shell-fila
+  - 🟡 💻 `hub.genes` skrives ut **to ganger** (linje 1027 og 1047)
+  - 🟡 🖼️ Tabell med `kable`
+
+### 5 · Diskusjon (~350 ord) · 🔴 mangler helt (stillas i del 4)
+- 🔴 📝 **Svar** på forskningsspørsmålet (1–2 setninger)
+- 🔴 📝 Hva betyr de viktigste modulene biologisk? (synapse, myelin, ribosom, kromatin)
+- 🔴 📝 Sammenlign med tidligere studier (Srinivasan 2020 og fnagi-artikkelen)
+- 🔴 📝 **Begrensninger** (minst 3):
+  - **bulk-vev:** endret celletype-sammensetning (f.eks. tap av nevroner) kan gi modulene
+  - **tverrsnitt og post mortem:** sier ingenting om årsak
+  - **Braak og diagnose henger tett sammen:** få kontroller med høy Braak
+  - **WGCNA:** modulene avhenger av parametre og av maskinen
+- 🔴 📝 Konklusjon + videre arbeid (1–2 setninger)
+
+### 6 · Referanser · 🔴 tom (ferdig liste i del 5)
+- 🔴 📝 Lim inn listen fra del 5
+- 🔴 📝 Alle 7 kildene i teksten må være med: Srinivasan 2020 · Love 2014 · Langfelder & Horvath 2008 · Benjamini & Hochberg 1995 · Xu 2024 · Kuleshov 2016 · Luo & Brouwer 2013
+- 🟡 📝 Kildene til Innledningen (f.eks. Braak & Braak 1991)
+
+### 7 · Etter Referanser
+- 🔴 📝 **Summary of Gen AI use** (utkast i del 7)
+- 🟡 💻 **Vedlegg: slik ble dataene hentet.** Koden finnes **bare** i `Project_file.Rmd` (linje 149–225). Legg den inn med `eval = FALSE`
+- 🟢 💻 `sessionInfo()` (alle pakkeversjoner)
 
 ## 🎨 Viktigst av alt: to maskiner = to sett moduler
 
@@ -137,7 +272,7 @@ MEs <- modules$MEs
 
 ```
 ☐ 1. Rapportfil = Project.Rmd           (anbefalt: ja, koden må være med)
-☐ 2. Språk = engelsk eller norsk?        (Methods finnes på begge, Results bare på norsk)
+☑ 2. Språk = NORSK (bestemt 28.11)      (Methods oversatt; Charlenes norske Metode nederst må slås sammen)
 ☐ 3. Modul-fila (wgcna_modules.rds)?    (anbefalt: ja, da kan BEGGE knitte likt)
 ☐ 4. Kode-figurer eller faste bilder?    (anbefalt: kode-figurer, de stemmer da hos begge)
 ☐ 5. Hvem skriver hva? (forslag i del 3)
@@ -177,7 +312,9 @@ PROSJEKT/
 ├── Project_shell.Rmd / .html ......... 🟡 skallet fra 6.11, MEN har fortsatt
 │                                          Charlenes Results-tekst for GO, KEGG,
 │                                          DESeq2, hub og regulatorer → flytt først!
-├── Project_file.Rmd .................. 🟡 eldste skall (5.11), ikke i bruk
+├── Project_file.Rmd .................. 🟡 eldste skall (5.11), MEN har den eneste
+│                                          koden for å laste ned data og lage
+│                                          traits.csv → flytt til vedlegg først!
 │
 ├── Week9_Project.pptx ................ 📎 lærerens prosjektslides (oppgaven)
 ├── nihms-1608497.pdf ................. 📎 Srinivasan 2020 (artikkelen til datasettet)
@@ -534,11 +671,16 @@ Code and RStudio
 - Claude helped install missing R packages (clusterProfiler, enrichplot)
   and explained error messages.
 - Claude helped us check Git merges so no code was lost.
+- WGCNA gave different modules on our two computers. Claude found the
+  cause and changed the WGCNA chunk to save/load the modules in a file
+  (data/wgcna_modules.rds), so both computers get the same result.
 
 Writing
 - Claude wrote a draft of the Methods section from our code.
   We pasted it into the report and [edited it / shortened it].   ← fyll inn
 - Claude compiled the reference list. We checked it against the sources.
+- Claude translated our Methods text and the headings from English to
+  Norwegian. We checked the translation.
 - [Introduction / Discussion / Abstract: who wrote them, and how AI was used]   ← fyll inn
 
 Understanding
